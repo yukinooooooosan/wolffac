@@ -1,0 +1,19 @@
+{
+  "id": "dayX",
+  "title": "特別作業日 - オオカミの咆哮",
+  "openingText": "第3作業日はいつもと変わらぬ静けさの中で始まった。だが…。",
+
+  "selectCount": 4,
+  "availableAnimals": [
+    { "name": "ライオン", "role": "♂" },
+    { "name": "カバ", "role": "♀" },
+    { "name": "ゾウ", "role": "♂" },
+    { "name": "トリ", "role": "♀" },
+    { "name": "ヘビ", "role": "" }
+  ],
+  "wolfAttackRule": {
+    "injuryType": "random",
+    "maxInjuriesPerTurn": 2
+  },
+  "allowGenderRestriction": false
+}
