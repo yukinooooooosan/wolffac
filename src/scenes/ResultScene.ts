@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { Assets } from 'pixi.js';
+import { assetUrl } from '../core/assetPath';
 import { SceneManager } from '../core/SceneManager';
 import {
   RESULT_BG_WIDTH, RESULT_BG_HEIGHT,
@@ -129,27 +130,22 @@ export class ResultScene extends PIXI.Container {
     this.deadNames = this.deadAnimals.map(a => a.name);
     this.totalInjuryCount = this.injuredNames.length + this.deadNames.length;
 
+    // まずは全員を「前日の状態」で描画する
     await this.renderGroup(this.healthyAnimals, "normal");
     await this.renderGroup(this.survivedInjuredAnimals, "survivedWhileInjured");
-
-    if (this.newlyInjuredAnimals.length > 0) {
-      this.tweenRedOverlay();
-      await new Promise(r => setTimeout(r, 500));
-      await this.renderGroup(this.newlyInjuredAnimals, "injured");
-    }
-    if (this.deadAnimals.length > 0) {
-      this.tweenBlackOverlay();
-      await new Promise(r => setTimeout(r, 500));
-      await this.renderGroup(this.deadAnimals, "dead");
-    }
+    // 被害者も、まずは「異常なし」または「元々の負傷状態」で出す
+    await this.renderGroup(this.newlyInjuredAnimals, "normal_pre_injured");
+    await this.renderGroup(this.deadAnimals, "injured_pre_dead");
 
     this.prepareAttackedQueue();
+    // 最初の待機
+    await new Promise(r => setTimeout(r, 800));
     this.ticker.start();
   }
 
   private async renderBackground() {
     try {
-      const bgTexture = await Assets.load('/assets/backgrounds/resultbg.png');
+      const bgTexture = await Assets.load(assetUrl('assets/backgrounds/resultbg.png'));
       const bg = new PIXI.Sprite(bgTexture);
       bg.width = RESULT_BG_WIDTH; bg.height = RESULT_BG_HEIGHT;
       bg.x = 0; bg.y = 0;
@@ -200,6 +196,7 @@ export class ResultScene extends PIXI.Container {
     this.animStep = 0;
   }
 
+  private isPlayingEffect = false;
   private onTickerUpdate() {
     if (this.currentAnimIndex >= this.attackedQueue.length) {
       this.finished = true;
@@ -207,10 +204,20 @@ export class ResultScene extends PIXI.Container {
       return;
     }
 
+    // エフェクト再生中は進行しない
+    if (this.isPlayingEffect) return;
+
     if (this.animStep === 0) {
       const { animal, to } = this.attackedQueue[this.currentAnimIndex];
       const container = this.animalContainers[animal.name];
       if (!container) { this.currentAnimIndex++; return; }
+
+      // 演出開始（オーバーレイなど）
+      if (to === "dead") {
+        this.tweenBlackOverlay();
+      } else {
+        this.tweenRedOverlay();
+      }
 
       const textMap = { injured: { label: "負傷", color: LABEL_INJURED_COLOR }, dead: { label: "死亡", color: LABEL_DEAD_COLOR } };
       this.flyText = new PIXI.Text(textMap[to].label, {
@@ -227,6 +234,15 @@ export class ResultScene extends PIXI.Container {
       this.flyText.alpha = 0.95;
       this.addChild(this.flyText);
 
+      this.animStep++;
+    } else {
+      if (!this.flyText) { this.animStep = 0; this.currentAnimIndex++; return; }
+
+      const { animal, to } = this.attackedQueue[this.currentAnimIndex];
+      const container = this.animalContainers[animal.name];
+
+      // 目的地計算（既存ラベルがある場所）
+      // まだラベルがない場合は作成しておく（非表示）
       let stateLabel = (container as any).stateLabel as PIXI.Text | undefined;
       if (!stateLabel) {
         stateLabel = new PIXI.Text(to === "injured" ? "負傷" : "死亡", {
@@ -239,16 +255,11 @@ export class ResultScene extends PIXI.Container {
         stateLabel.anchor.set(0.5);
         stateLabel.x = LABEL_POS_X - RESULT_ANIMAL_ICON_X;
         stateLabel.y = LABEL_POS_Y;
+        stateLabel.visible = false;
         (container as any).stateLabel = stateLabel;
         container.addChild(stateLabel);
       }
-      this.animStep++;
-    } else {
-      if (!this.flyText) { this.animStep = 0; this.currentAnimIndex++; return; }
 
-      const { animal, to } = this.attackedQueue[this.currentAnimIndex];
-      const container = this.animalContainers[animal.name];
-      const stateLabel = (container as any).stateLabel as PIXI.Text;
       const globalLabel = stateLabel.getGlobalPosition();
       const localGoal = this.toLocal(globalLabel);
 
@@ -265,21 +276,34 @@ export class ResultScene extends PIXI.Container {
       this.flyText.scale.set(startScale + (endScale - startScale) * p);
 
       if (t >= 1) {
+        // 重複実行防止フラグを立てる
+        this.isPlayingEffect = true;
+
         this.flyText.visible = false;
         const sprite = container.children.find(c => c instanceof PIXI.Sprite) as PIXI.Sprite;
+
+        // ヒット時に対象の見た目を更新
+        this.updateStateLabel(container, to);
+        this.updateSpeechText(container, animal, to);
+        this.updateBubbleColor(container, to);
+
         this.shakeSprite(sprite, to, () => {
-          this.removeChild(this.flyText!);
-          this.flyText = undefined;
+          if (this.flyText) {
+            this.removeChild(this.flyText);
+            this.flyText = undefined;
+          }
 
           if (to === "dead") {
             this.deathOccured = true;
             this.fadeOutAndRemove(container, () => {
               this.currentAnimIndex++;
               this.animStep = 0;
+              this.isPlayingEffect = false;
             });
           } else {
             this.currentAnimIndex++;
             this.animStep = 0;
+            this.isPlayingEffect = false;
           }
         });
       } else {
@@ -288,7 +312,7 @@ export class ResultScene extends PIXI.Container {
     }
   }
 
-  private async renderGroup(animals: AnimalData[], status: StateType) {
+  private async renderGroup(animals: AnimalData[], status: StateType | "injured_pre_dead" | "normal_pre_injured") {
     if (animals.length === 0) return;
 
     const totalCount =
@@ -299,7 +323,7 @@ export class ResultScene extends PIXI.Container {
 
     const spacingY = RESULT_SPACING_Y - (totalCount <= 4 ? 20 : 0);
     const totalHeight = spacingY * totalCount;
-    const startX = RESULT_ANIMAL_ICON_SIZE ? RESULT_ANIMAL_ICON_X : RESULT_ANIMAL_ICON_X;
+    const startX = RESULT_ANIMAL_ICON_X;
 
     const groupStartIndex = this.getGroupStartIndex(status);
     const startY = (RESULT_BG_HEIGHT - totalHeight) / 2 + groupStartIndex * spacingY;
@@ -313,23 +337,31 @@ export class ResultScene extends PIXI.Container {
     }
   }
 
-  private getGroupStartIndex(status: StateType): number {
+  private getGroupStartIndex(status: StateType | "injured_pre_dead" | "normal_pre_injured"): number {
     switch (status) {
       case "normal": return 0;
       case "survivedWhileInjured": return this.healthyAnimals.length;
-      case "injured": return this.healthyAnimals.length + this.survivedInjuredAnimals.length;
-      case "dead": return this.healthyAnimals.length + this.survivedInjuredAnimals.length + this.newlyInjuredAnimals.length;
+      case "injured":
+      case "normal_pre_injured":
+        return this.healthyAnimals.length + this.survivedInjuredAnimals.length;
+      case "injured_pre_dead":
+      case "dead":
+        return this.healthyAnimals.length + this.survivedInjuredAnimals.length + this.newlyInjuredAnimals.length;
       default: return 0;
     }
   }
 
-  private async createAnimalContainer(animal: AnimalData, x: number, y: number, status: StateType): Promise<PIXI.Container> {
+  private async createAnimalContainer(animal: AnimalData, x: number, y: number, status: StateType | "injured_pre_dead" | "normal_pre_injured"): Promise<PIXI.Container> {
     const container = new PIXI.Container();
     container.x = x; container.y = y;
 
+    const actualStatus: StateType = (status === "injured_pre_dead")
+      ? "injured"
+      : (status === "normal_pre_injured" ? "normal" : status);
+
     try {
-      await Assets.load(`/assets/animals/${animal.image}`);
-      const sprite = PIXI.Sprite.from(`/assets/animals/${animal.image}`);
+      await Assets.load(assetUrl(`assets/animals/${animal.image}`));
+      const sprite = PIXI.Sprite.from(assetUrl(`assets/animals/${animal.image}`));
       sprite.width = RESULT_ANIMAL_ICON_SIZE;
       sprite.height = RESULT_ANIMAL_ICON_SIZE;
       sprite.anchor.set(0.5);
@@ -361,8 +393,8 @@ export class ResultScene extends PIXI.Container {
     bubble.endFill();
     container.addChild(bubble);
 
-    let lineCategory: StateType | "otherinjured" = status;
-    if (status === "normal" && (this.injuredNames.length + this.deadNames.length) > 0) {
+    let lineCategory: StateType | "otherinjured" = actualStatus;
+    if (actualStatus === "normal" && (this.injuredNames.length + this.deadNames.length) > 0) {
       lineCategory = "otherinjured";
     }
 
@@ -376,13 +408,13 @@ export class ResultScene extends PIXI.Container {
       });
       const raw = (available.length > 0 ? available : lines)[Math.floor(Math.random() * (available.length > 0 ? available.length : lines.length))];
       message = raw.replace(/{name}/g, formatInjuredNames(this.injuredNames))
-                   .replace(/{count}/g, (this.injuredNames.length + this.deadNames.length).toString());
+        .replace(/{count}/g, (this.injuredNames.length + this.deadNames.length).toString());
     } else {
       message =
         status === "injured" ? 'イテテ… ぶつかったかも…' :
-        status === "dead" ? '…もう、動けないみたい…' :
-        status === "survivedWhileInjured" ? 'なんとかやり過ごせた…かな？' :
-        '無事に終わったよ！';
+          status === "dead" ? '…もう、動けないみたい…' :
+            status === "survivedWhileInjured" ? 'なんとかやり過ごせた…かな？' :
+              '無事に終わったよ！';
     }
 
     const text = new PIXI.Text(message, {
@@ -397,10 +429,10 @@ export class ResultScene extends PIXI.Container {
 
     let labelText = "";
     let labelColor = 0xffffff;
-    if (status === "injured" || status === "survivedWhileInjured") {
+    if (actualStatus === "injured" || actualStatus === "survivedWhileInjured") {
       labelText = "負傷";
       labelColor = LABEL_INJURED_COLOR;
-    } else if (status === "dead") {
+    } else if (actualStatus === "dead") {
       labelText = "死亡";
       labelColor = LABEL_DEAD_COLOR;
     }
@@ -421,12 +453,24 @@ export class ResultScene extends PIXI.Container {
     return container;
   }
 
+  private updateBubbleColor(container: PIXI.Container, to: "injured" | "dead") {
+    const bubble = container.children.find(c => c instanceof PIXI.Graphics) as PIXI.Graphics | undefined;
+    if (bubble) {
+      const color = (to === "injured") ? RESULT_BUBBLE_COLOR_INJURED : RESULT_BUBBLE_COLOR_DEAD;
+      bubble.clear();
+      bubble.beginFill(color);
+      bubble.drawRoundedRect(RESULT_BUBBLE_OFFSET_X, RESULT_BUBBLE_OFFSET_Y, RESULT_BUBBLE_WIDTH, RESULT_BUBBLE_HEIGHT, RESULT_BUBBLE_RADIUS);
+      bubble.endFill();
+    }
+  }
+
   private updateStateLabel(container: PIXI.Container, to: "injured" | "dead") {
     const stateLabel = (container as any).stateLabel as PIXI.Text;
     if (stateLabel) {
-      stateLabel.text = (to === "injured") ? "負傷" : "死亡";
       (stateLabel.style as any).fill = (to === "injured") ? LABEL_INJURED_COLOR : LABEL_DEAD_COLOR;
+      stateLabel.text = (to === "injured") ? "負傷" : "死亡";
       stateLabel.scale.set(1.0);
+      stateLabel.visible = true;
     } else {
       const label = new PIXI.Text(to === "injured" ? "負傷" : "死亡", {
         fill: to === "injured" ? LABEL_INJURED_COLOR : LABEL_DEAD_COLOR,
@@ -451,9 +495,9 @@ export class ResultScene extends PIXI.Container {
     const message = lines && lines.length > 0
       ? lines[Math.floor(Math.random() * lines.length)]
       : to === "injured" ? 'イテテ… ぶつかったかも…'
-      : to === "dead" ? '…もう、動けないみたい…'
-      : to === "survivedWhileInjured" ? 'なんとかやり過ごせた…かな？'
-      : '無事に終わったよ！';
+        : to === "dead" ? '…もう、動けないみたい…'
+          : to === "survivedWhileInjured" ? 'なんとかやり過ごせた…かな？'
+            : '無事に終わったよ！';
 
     speechText.text = message;
   }

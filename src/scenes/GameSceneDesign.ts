@@ -41,13 +41,13 @@ export const CONFIRM_BUTTON_FONT_SIZE = 32;
 export const CONFIRM_BUTTON_COLOR = 0xffff00;
 
 // ▼ 告発ボタン（accuseButton）のデザインパラメータ
-/** 「告発」ボタンのX座標（画面左端付近） */
-export const ACCUSE_BUTTON_X = 30;
-/** 「告発」ボタンのY座標（画面下部） */
-export const ACCUSE_BUTTON_Y = 1220;
-/** 「告発」ボタンのフォントサイズ */
-export const ACCUSE_BUTTON_FONT_SIZE = 26;
-/** 「告発」ボタンの文字色（赤） */
+/** 「処分実行」ボタンのX座標（画面左端付近） */
+export const ACCUSE_BUTTON_X = 40;
+/** 「処分実行」ボタンのY座標（画面下部） */
+export const ACCUSE_BUTTON_Y = 1160;
+/** 「処分実行」ボタンのフォントサイズ */
+export const ACCUSE_BUTTON_FONT_SIZE = 32;
+/** 「処分実行」ボタンの文字色（赤） */
 export const ACCUSE_BUTTON_COLOR = 0xff4444;
 
 

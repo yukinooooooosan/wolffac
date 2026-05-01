@@ -7,10 +7,12 @@ import { InjuryGameOverScene } from '../scenes/InjuryGameOverScene';
 import { AccuseScene } from '../scenes/AccuseScene';
 import { WinScene } from '../scenes/WinScene';
 import { LoseScene } from '../scenes/LoseScene';
+import { JudgementGameOverScene } from '../scenes/JudgementGameOverScene';
 import type { ScenarioData } from './types';
 import type { AnimalData } from './types';
+import type { WorkerLogBook } from '../game/workLog';
 
-type SceneName = 'Title' | 'Opening' | 'Game' | 'Result' | 'InjuryGameOver' | 'Accuse' | 'Win' | 'Lose';
+type SceneName = 'Title' | 'Opening' | 'Game' | 'Result' | 'InjuryGameOver' | 'JudgementGameOver' | 'Accuse' | 'Win' | 'Lose';
 type StateType = "normal" | "injured" | "dead";
 
 interface AnimalState {
@@ -21,6 +23,7 @@ interface AnimalState {
 
 export interface WinLoseData {
   animalName: string;
+  scenarioId?: string; // ← 追加
 }
 
 export interface ResultData {
@@ -43,12 +46,7 @@ export class SceneManager {
   static injuryRecord: Record<string, any> = {};
   static currentDay: number = 0;
 
-  static animalLogs: {
-    [animalName: string]: Array<{
-      selected: boolean | null;
-      injured: boolean;
-    }>;
-  } = {};
+  static animalLogs: WorkerLogBook = {};
 
   static async init(app: PIXI.Application) {
     this.app = app;
@@ -77,7 +75,7 @@ export class SceneManager {
 
       this.currentScene = new TitleScene();
 
-    } else if (name === 'Opening' && data && 'opening' in data) {
+    } else if (name === 'Opening' && data && 'availableAnimals' in data) {
       this.currentScene = new OpeningScene(data as ScenarioData);
 
     } else if (name === 'Game' && data && 'availableAnimals' in data) {
@@ -91,11 +89,15 @@ export class SceneManager {
     } else if (name === 'InjuryGameOver' && data && 'animal' in data) {
       this.currentScene = new InjuryGameOverScene((data as InjuryGameOverData).animal);
 
+    } else if (name === 'JudgementGameOver' && data && 'availableAnimals' in data) {
+      this.currentScene = new JudgementGameOverScene(data as ScenarioData);
+
     } else if (name === 'Accuse' && data && 'scenario' in data) {
       this.currentScene = new AccuseScene(data as ResultData);
 
     } else if (name === 'Win' && data && 'animalName' in data) {
-      this.currentScene = new WinScene({ animalName: String((data as any).animalName) });
+      const d = data as WinLoseData;
+      this.currentScene = new WinScene({ animalName: d.animalName, scenarioId: d.scenarioId });
 
     } else if (name === 'Lose' && data && 'animalName' in data) {
       this.currentScene = new LoseScene({ animalName: String((data as any).animalName) });

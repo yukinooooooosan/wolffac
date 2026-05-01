@@ -10,7 +10,7 @@ import {
   PROGRESS_BAR_X, PROGRESS_BAR_Y, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT, PROGRESS_BAR_RADIUS,
   PROGRESS_BAR_COLOR_FROM, PROGRESS_BAR_COLOR_TO, PROGRESS_BAR_BG_COLOR,
   LEDGER_BUTTON_WIDTH, LEDGER_BUTTON_HEIGHT, LEDGER_BUTTON_X, LEDGER_BUTTON_Y,
-  LEDGER_WINDOW_X,LEDGER_WINDOW_Y,LEDGER_WINDOW_WIDTH,LEDGER_WINDOW_HEIGHT,
+  LEDGER_WINDOW_X, LEDGER_WINDOW_Y, LEDGER_WINDOW_WIDTH, LEDGER_WINDOW_HEIGHT,
   TITLE_FONT_SIZE, STATUS_FONT_SIZE, STATUS_HIGHLIGHT_COLOR, STATUS_COMPLETE_COLOR,
   LEDGER_LABEL_FONT_SIZE,
   CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, CONFIRM_BUTTON_FONT_SIZE, CONFIRM_BUTTON_COLOR,
@@ -80,35 +80,36 @@ export class GameScene extends PIXI.Container {
   private progressLabel!: PIXI.Text;
 
   private selectedLabels: { [name: string]: PIXI.Text } = {};
+  private animalContainers: PIXI.Container[] = []; // 追加
 
   private animalStateList: AnimalState[] = [];
 
   constructor(scenario: ScenarioData, wolves?: string[], animalStateList?: AnimalState[]) {
     super();
-      console.log('initial wolves:', this.wolves);  // ← 初期決定の確認
-      console.log('availableAnimals:', scenario.availableAnimals);
-      console.log('picked wolves:', this.wolves);
+    console.log('initial wolves:', this.wolves);  // ← 初期決定の確認
+    console.log('availableAnimals:', scenario.availableAnimals);
+    console.log('picked wolves:', this.wolves);
     this.scenario = scenario;  // ★これを追加
     this.maxDays = scenario.maxDays ?? 3;  // 未設定なら3日
 
 
-    
+
     this.wolves = wolves ?? this.pickWolves(scenario.availableAnimals, 1);
-     console.log('Current wolves2:', this.wolves);
+    console.log('Current wolves2:', this.wolves);
     this.selectCount = scenario.selectCount;
     this.injuryType = scenario.wolfAttackRule?.injuryType ?? 'random';
     this.allowSelfAttack = scenario.wolfAttackRule?.allowWolfSelfAttack ?? false;
 
-     if (animalStateList && animalStateList.length > 0) {
-    this.animalStateList = animalStateList;
-  } else {
-    this.animalStateList = scenario.availableAnimals.map(animal => ({
-      name: animal.name,
-      from: "normal" as StateType,
-      to: "normal" as StateType,
-    }));
-  }
-  SceneManager.animalStateList = this.animalStateList;
+    if (animalStateList && animalStateList.length > 0) {
+      this.animalStateList = animalStateList;
+    } else {
+      this.animalStateList = scenario.availableAnimals.map(animal => ({
+        name: animal.name,
+        from: "normal" as StateType,
+        to: "normal" as StateType,
+      }));
+    }
+    SceneManager.animalStateList = this.animalStateList;
 
     this.renderBackground();
 
@@ -150,20 +151,20 @@ export class GameScene extends PIXI.Container {
 
 
     // 残り日数ラベル
-this.remainingDaysLabel = new PIXI.Text('', {
-  fill: 0xffffff,
-  fontSize: 22,
-  fontWeight: "bold",
-  stroke: 0x000000,
-  strokeThickness: 3
-});
-this.remainingDaysLabel.anchor.set(0.5, 0);
-this.remainingDaysLabel.x = PROGRESS_BAR_X + PROGRESS_BAR_WIDTH / 2;
-this.remainingDaysLabel.y = PROGRESS_BAR_Y + PROGRESS_BAR_HEIGHT + 12;
-this.addChild(this.remainingDaysLabel);
+    this.remainingDaysLabel = new PIXI.Text('', {
+      fill: 0xffffff,
+      fontSize: 22,
+      fontWeight: "bold",
+      stroke: 0x000000,
+      strokeThickness: 3
+    });
+    this.remainingDaysLabel.anchor.set(0.5, 0);
+    this.remainingDaysLabel.x = PROGRESS_BAR_X + PROGRESS_BAR_WIDTH / 2;
+    this.remainingDaysLabel.y = PROGRESS_BAR_Y + PROGRESS_BAR_HEIGHT + 12;
+    this.addChild(this.remainingDaysLabel);
 
-// 初期化
-this.updateRemainingDaysLabel();
+    // 初期化
+    this.updateRemainingDaysLabel();
 
     this.progressLabel = new PIXI.Text('', {
       fill: 0xffffff,
@@ -218,7 +219,7 @@ this.updateRemainingDaysLabel();
     this.updateProgressBar();
 
     (async () => {
-            // Preload all animal images in parallel for faster first paint
+      // Preload all animal images in parallel for faster first paint
       const __urls = this.scenario.availableAnimals.map(a => `/assets/animals/${a.image}`);
       await Promise.all(__urls.map(u => Assets.load(u)));
       for (let [index, animal] of this.scenario.availableAnimals.entries()) {
@@ -250,10 +251,10 @@ this.updateRemainingDaysLabel();
           if (animalState?.to === "injured") {
             const colorFilter = new ColorMatrixFilter();
             colorFilter.matrix = [
-              1.2,  0.2, 0.1, 0, 0,
-              0.1,  0.5, 0.1, 0, 0,
-              0.1,  0.1, 0.5, 0, 0,
-              0,    0,   0,   1, 0
+              1.2, 0.2, 0.1, 0, 0,
+              0.1, 0.5, 0.1, 0, 0,
+              0.1, 0.1, 0.5, 0, 0,
+              0, 0, 0, 1, 0
             ];
             loaded.filters = [colorFilter];
           } else if (animalState?.to === "dead") {
@@ -262,7 +263,7 @@ this.updateRemainingDaysLabel();
               0.4, 0.4, 0.4, 0, 0,
               0.4, 0.4, 0.4, 0, 0,
               0.4, 0.4, 0.4, 0, 0,
-              0,   0,   0,   1, 0
+              0, 0, 0, 1, 0
             ];
             loaded.filters = [colorFilter];
           }
@@ -407,75 +408,75 @@ this.updateRemainingDaysLabel();
     this.confirmButton.cursor = 'pointer';
     this.confirmButton.on('pointertap', () => {
       if (this.isLedgerOpen) return;
-        console.log('wolves:', this.wolves);  // ← ここ
-          // 選抜メンバーの名前（string）の配列を作る
-          const selectedNames = Array.from(this.selected);
-          console.log('選抜メンバー:', selectedNames);
-    const selectedArray: AnimalData[] = [...this.selected].map(name => {
-      const animal = this.scenario.availableAnimals.find(a => a.name === name);
-      if (!animal) throw new Error(`動物データが見つかりません: ${name}`);
-      return animal;
-    });
-        // 全動物の状態遷移を計算・更新する処理
+      console.log('wolves:', this.wolves);  // ← ここ
+      // 選抜メンバーの名前（string）の配列を作る
+      const selectedNames = Array.from(this.selected);
+      console.log('選抜メンバー:', selectedNames);
+      const selectedArray: AnimalData[] = [...this.selected].map(name => {
+        const animal = this.scenario.availableAnimals.find(a => a.name === name);
+        if (!animal) throw new Error(`動物データが見つかりません: ${name}`);
+        return animal;
+      });
+      // 全動物の状態遷移を計算・更新する処理
       const newAnimalStateList: AnimalState[] = [];
       console.log('選抜メンバーAnimalData:', selectedArray);
-        // オオカミが選抜されているか確認
-  const hasWolf = selectedArray.some(a => this.wolves.includes(a.name));
-  console.log("オオカミが選抜メンバーにいるか？", hasWolf);
+      // オオカミが選抜されているか確認
+      const hasWolf = selectedArray.some(a => this.wolves.includes(a.name));
+      console.log("オオカミが選抜メンバーにいるか？", hasWolf);
 
-  if (!hasWolf) {
-    console.log("オオカミが選抜されていないため、襲撃は発生しません。");
-    // 状態遷移はすべてnormalのままにする例
-    const newAnimalStateList = this.animalStateList.map(s => ({
-      name: s.name,
-      from: s.to,
-      to: s.to,
-    }));
-    SceneManager.animalStateList = newAnimalStateList;
+      if (!hasWolf) {
+        console.log("オオカミが選抜されていないため、襲撃は発生しません。");
+        // 状態遷移はすべてnormalのままにする例
+        const newAnimalStateList = this.animalStateList.map(s => ({
+          name: s.name,
+          from: s.to,
+          to: s.to,
+        }));
+        SceneManager.animalStateList = newAnimalStateList;
         this.scenario.availableAnimals.forEach(animal => {
-      const isSelected = this.selected.has(animal.name);
-      const animalState = newAnimalStateList.find(a => a.name === animal.name);
-      const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
+          const isSelected = this.selected.has(animal.name);
+          const animalState = newAnimalStateList.find(a => a.name === animal.name);
+          const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
 
-      const dayIdx = SceneManager.currentDay ?? 0;
+          const dayIdx = SceneManager.currentDay ?? 0;
 
-      // まず当日(dayIdx)の全動物ログを一旦falseでリセット
-      this.scenario.availableAnimals.forEach(animal => {
-        if (SceneManager.animalLogs[animal.name]) {
-          SceneManager.animalLogs[animal.name][dayIdx] = {
-            selected: false,
-            injured: false
-          };
-        }
-      });
+          // まず当日(dayIdx)の全動物ログを一旦falseでリセット
+          this.scenario.availableAnimals.forEach(animal => {
+            if (SceneManager.animalLogs[animal.name]) {
+              SceneManager.animalLogs[animal.name][dayIdx] = {
+                selected: false,
+                injured: false
+              };
+            }
+          });
 
-      // その後、実際の選抜・負傷状態で上書き
-      this.scenario.availableAnimals.forEach(animal => {
-        const isSelected = this.selected.has(animal.name);
-        const animalState = newAnimalStateList.find(a => a.name === animal.name);
-        const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
+          // その後、実際の選抜・負傷状態で上書き
+          this.scenario.availableAnimals.forEach(animal => {
+            const isSelected = this.selected.has(animal.name);
+            const animalState = newAnimalStateList.find(a => a.name === animal.name);
+            const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
 
-        if (SceneManager.animalLogs[animal.name]) {
-          // ここで今日の分だけ上書き
-          SceneManager.animalLogs[animal.name][dayIdx] = {
-            selected: isSelected,
-            injured: isInjured
-          };
-        }
-      });
-    });
+            if (SceneManager.animalLogs[animal.name]) {
+              // ここで今日の分だけ上書き
+              SceneManager.animalLogs[animal.name][dayIdx] = {
+                selected: isSelected,
+                injured: isInjured
+              };
+            }
+          });
+        });
 
 
-    // 結果画面へ遷移
-    SceneManager.changeScene('Result', {
-      selected: selectedArray,
-      wolves: this.wolves,
-      playerLost: false,
-      scenario: this.scenario,
-      animalStateList: newAnimalStateList,
-    });
-    return;
-  }
+        // 結果画面へ遷移
+        SceneManager.changeScene('Result', {
+          selected: selectedArray,
+          wolves: this.wolves,
+          playerLost: false,
+          scenario: this.scenario,
+          animalStateList: newAnimalStateList,
+        });
+        return;
+      }
 
       if (!SceneManager.animalStateList) {
         SceneManager.animalStateList = this.scenario.availableAnimals.map(animal => ({
@@ -487,9 +488,9 @@ this.updateRemainingDaysLabel();
 
       const prevStateList = SceneManager.animalStateList;
 
-let attackedNames: string[] = [];
-// selectedArrayはAnimalData[]なので、フィルターは不要
-const selectedAnimals = selectedArray;
+      let attackedNames: string[] = [];
+      // selectedArrayはAnimalData[]なので、フィルターは不要
+      const selectedAnimals = selectedArray;
 
       // day2の判定（injuryType: "maleOnly"で判定）
       if (this.scenario.wolfAttackRule?.injuryType === "maleOnly") {
@@ -515,14 +516,14 @@ const selectedAnimals = selectedArray;
           .sort(() => Math.random() - 0.5)
           .slice(0, attackCount)
           .map(a => a.name);
-          console.log('襲撃対象:', attackedNames);
-          const hasWolf = selectedArray.some(a => this.wolves.includes(a.name));
-          console.log("オオカミが選抜メンバーにいるか？", hasWolf);
+        console.log('襲撃対象:', attackedNames);
+        const hasWolf = selectedArray.some(a => this.wolves.includes(a.name));
+        console.log("オオカミが選抜メンバーにいるか？", hasWolf);
 
-          console.log("GameScene constructor - wolves:", this.wolves);
-          console.log("this.wolves after init:", this.wolves);
-          
-          
+        console.log("GameScene constructor - wolves:", this.wolves);
+        console.log("this.wolves after init:", this.wolves);
+
+
       }
 
       for (const animal of this.scenario.availableAnimals) {
@@ -550,43 +551,43 @@ const selectedAnimals = selectedArray;
 
       const playerLost = newAnimalStateList.some(a => a.to === "dead");
 
-      SceneManager.currentDay = (SceneManager.currentDay ?? 0) ;
+      SceneManager.currentDay = (SceneManager.currentDay ?? 0);
 
-console.log('wolves:', this.wolves);
-console.log('playerLost:', playerLost);
-console.log('scenario:', this.scenario);
-console.log('animalStateList:', newAnimalStateList);
+      console.log('wolves:', this.wolves);
+      console.log('playerLost:', playerLost);
+      console.log('scenario:', this.scenario);
+      console.log('animalStateList:', newAnimalStateList);
 
-console.log('SceneManager.animalStateList:', SceneManager.animalStateList);
+      console.log('SceneManager.animalStateList:', SceneManager.animalStateList);
 
-const dayIdx = SceneManager.currentDay ?? 0;
-          // まず当日(dayIdx)の全動物ログを一旦falseでリセット
-    this.scenario.availableAnimals.forEach(animal => {
-      if (SceneManager.animalLogs[animal.name]) {
-        SceneManager.animalLogs[animal.name][dayIdx] = {
-          selected: false,
-          injured: false
-        };
-      }
-    });
+      const dayIdx = SceneManager.currentDay ?? 0;
+      // まず当日(dayIdx)の全動物ログを一旦falseでリセット
+      this.scenario.availableAnimals.forEach(animal => {
+        if (SceneManager.animalLogs[animal.name]) {
+          SceneManager.animalLogs[animal.name][dayIdx] = {
+            selected: false,
+            injured: false
+          };
+        }
+      });
 
-    // その後、実際の選抜・負傷状態で上書き
-    this.scenario.availableAnimals.forEach(animal => {
-      const isSelected = this.selected.has(animal.name);
-      const animalState = newAnimalStateList.find(a => a.name === animal.name);
-      const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
+      // その後、実際の選抜・負傷状態で上書き
+      this.scenario.availableAnimals.forEach(animal => {
+        const isSelected = this.selected.has(animal.name);
+        const animalState = newAnimalStateList.find(a => a.name === animal.name);
+        const isInjured = animalState?.to === "injured" || animalState?.to === "dead";
 
-      if (SceneManager.animalLogs[animal.name]) {
-        // ここで今日の分だけ上書き
-        SceneManager.animalLogs[animal.name][dayIdx] = {
-          selected: isSelected,
-          injured: isInjured
-        };
-      }
-    });
+        if (SceneManager.animalLogs[animal.name]) {
+          // ここで今日の分だけ上書き
+          SceneManager.animalLogs[animal.name][dayIdx] = {
+            selected: isSelected,
+            injured: isInjured
+          };
+        }
+      });
 
 
- 
+
       SceneManager.changeScene('Result', {
         selected: selectedAnimals, // AnimalData[] を渡す
         wolves: this.wolves,
@@ -595,101 +596,101 @@ const dayIdx = SceneManager.currentDay ?? 0;
         animalStateList: newAnimalStateList,
       });
     });
-    
+
     this.addChild(this.confirmButton);
 
-      this.accuseButton = new PIXI.Text('告発 ▶', {
-        fill: ACCUSE_BUTTON_COLOR,
-        fontSize: ACCUSE_BUTTON_FONT_SIZE,
-      });
-      this.accuseButton.anchor.set(0, 1);
-      this.accuseButton.x = ACCUSE_BUTTON_X;
-      this.accuseButton.y = ACCUSE_BUTTON_Y;
-      this.accuseButton.eventMode = 'static';
-      this.accuseButton.cursor = 'pointer';
-      this.accuseButton.on('pointertap', async (e) => {
-        if (this.isLedgerOpen) return;
-        try {
-          await SceneManager.changeScene('Accuse', {
-            selected: [],
-            scenario: this.scenario,
-            wolves: this.wolves,
-            animalStateList: this.animalStateList,
-          });
-        } catch (err) {
-          console.error("❌ 告発シーンへの遷移中にエラー", err);
-        }
-      });
-      this.addChild(this.accuseButton);
+    this.accuseButton = new PIXI.Text('告発 ▶', {
+      fill: ACCUSE_BUTTON_COLOR,
+      fontSize: ACCUSE_BUTTON_FONT_SIZE,
+    });
+    this.accuseButton.anchor.set(0, 1);
+    this.accuseButton.x = ACCUSE_BUTTON_X;
+    this.accuseButton.y = ACCUSE_BUTTON_Y;
+    this.accuseButton.eventMode = 'static';
+    this.accuseButton.cursor = 'pointer';
+    this.accuseButton.on('pointertap', async (e) => {
+      if (this.isLedgerOpen) return;
+      try {
+        await SceneManager.changeScene('Accuse', {
+          selected: [],
+          scenario: this.scenario,
+          wolves: this.wolves,
+          animalStateList: this.animalStateList,
+        });
+      } catch (err) {
+        console.error("❌ 告発シーンへの遷移中にエラー", err);
+      }
+    });
+    this.addChild(this.accuseButton);
   }
 
-private updateDayText() {
-  const sectionTitle = this.scenario.sectionTitle || "作業A工区";
-  const day = (SceneManager.currentDay ?? 0) + 1;
-  const maxDays = this.scenario.maxDays ?? 3;
+  private updateDayText() {
+    const sectionTitle = this.scenario.sectionTitle || "作業A工区";
+    const day = (SceneManager.currentDay ?? 0) + 1;
+    const maxDays = this.scenario.maxDays ?? 3;
 
-  if (day > maxDays) {
-    this.dayText.text = `${sectionTitle}　工場閉鎖日`;
-  } else {
-    this.dayText.text = `${sectionTitle}　第${day}稼働日`;
+    if (day > maxDays) {
+      this.dayText.text = `${sectionTitle}　工場閉鎖日`;
+    } else {
+      this.dayText.text = `${sectionTitle}　第${day}稼働日`;
+    }
   }
-}
 
-private updateStatusText() {
-  this.statusText.removeChildren();
-  const remaining = Math.max(this.selectCount - this.selected.size, 0);
-  const remainingDays = this.getRemainingDays(); // ←残り日数を取得
-  let messageHead = '工場に配置する動物を残り ';
-  let messageTail = ' 選択してください';
-  const unit = '匹';
+  private updateStatusText() {
+    this.statusText.removeChildren();
+    const remaining = Math.max(this.selectCount - this.selected.size, 0);
+    const remainingDays = this.getRemainingDays(); // ←残り日数を取得
+    let messageHead = '工場に配置する動物を残り ';
+    let messageTail = ' 選択してください';
+    const unit = '匹';
 
-  // ★日数が0ならメッセージを分岐
-  if (remainingDays === 0) {
-    const msg = new PIXI.Text("作業は終了しました。告発に進んでください", {
-      fill: 0xff4444,
+    // ★日数が0ならメッセージを分岐
+    if (remainingDays === 0) {
+      const msg = new PIXI.Text("作業は終了しました。告発に進んでください", {
+        fill: 0xff4444,
+        fontSize: STATUS_FONT_SIZE + 8,
+        fontWeight: "bold",
+      });
+      msg.x = 0;
+      msg.y = 50;
+      this.statusText.addChild(msg);
+      this.statusText.x = (720 - this.statusText.width) / 2;
+      this.statusText.y = 80;
+      return; // ここで終了
+    }
+
+    // 通常時の案内
+    const label1 = new PIXI.Text(messageHead, {
+      fill: 0xffffff,
+      fontSize: STATUS_FONT_SIZE,
+    });
+    const label2 = new PIXI.Text(`${remaining}${unit}`, {
+      fill: STATUS_HIGHLIGHT_COLOR,
       fontSize: STATUS_FONT_SIZE + 8,
       fontWeight: "bold",
     });
-    msg.x = 0;
-    msg.y = 50;
-    this.statusText.addChild(msg);
+    const label3 = new PIXI.Text(messageTail, {
+      fill: 0xffffff,
+      fontSize: STATUS_FONT_SIZE,
+    });
+
+    if (remaining === 0) {
+      label1.text = "問題なければ作業開始を選択してください";
+      label1.style.fill = STATUS_COMPLETE_COLOR;
+      label2.text = "";
+      label3.text = "";
+    }
+
+    label1.x = 0;
+    label2.x = label1.width;
+    label3.x = label1.width + label2.width;
+    label1.y = label3.y = 50;
+    label2.y = label1.y - 5;
+    this.statusText.addChild(label1, label2, label3);
+
     this.statusText.x = (720 - this.statusText.width) / 2;
     this.statusText.y = 80;
-    return; // ここで終了
   }
-
-  // 通常時の案内
-  const label1 = new PIXI.Text(messageHead, {
-    fill: 0xffffff,
-    fontSize: STATUS_FONT_SIZE,
-  });
-  const label2 = new PIXI.Text(`${remaining}${unit}`, {
-    fill: STATUS_HIGHLIGHT_COLOR,
-    fontSize: STATUS_FONT_SIZE + 8,
-    fontWeight: "bold",
-  });
-  const label3 = new PIXI.Text(messageTail, {
-    fill: 0xffffff,
-    fontSize: STATUS_FONT_SIZE,
-  });
-
-  if (remaining === 0) {
-    label1.text = "問題なければ作業開始を選択してください";
-    label1.style.fill = STATUS_COMPLETE_COLOR;
-    label2.text = "";
-    label3.text = "";
-  }
-
-  label1.x = 0;
-  label2.x = label1.width;
-  label3.x = label1.width + label2.width;
-  label1.y = label3.y = 50;
-  label2.y = label1.y - 5;
-  this.statusText.addChild(label1, label2, label3);
-
-  this.statusText.x = (720 - this.statusText.width) / 2;
-  this.statusText.y = 80;
-}
 
   private updateProgressBar() {
     const selectedCount = this.selected.size;
@@ -700,7 +701,7 @@ private updateStatusText() {
     this.progressLabel.text = `作業進捗 ${percent} %`;
   }
 
-   private showLedger() {
+  private showLedger() {
     if (this.isLedgerOpen) return;
     this.isLedgerOpen = true;
 
@@ -756,7 +757,7 @@ private updateStatusText() {
         fontWeight: "bold"
       });
       stateText.x = 180;
-      stateText.y = LEDGER_WINDOW_Y*1.05 + row * 110;
+      stateText.y = LEDGER_WINDOW_Y * 1.05 + row * 110;
 
       const commentText = new PIXI.Text(comment, {
         fill: 0xffffff,
@@ -765,7 +766,7 @@ private updateStatusText() {
         wordWrapWidth: 400
       });
       commentText.x = 180;
-      commentText.y = LEDGER_WINDOW_Y*1.2 + row * 110;
+      commentText.y = LEDGER_WINDOW_Y * 1.2 + row * 110;
 
       window.addChild(stateText);
       window.addChild(commentText);
@@ -808,15 +809,15 @@ private updateStatusText() {
     this.confirmButton.alpha = isReady ? 1.0 : 0.3;
     this.confirmButton.interactive = isReady;
     this.confirmButton.cursor = isReady ? 'pointer' : 'default';
-      // 残り日数が0ならもっと分かりやすく
-  if (this.getRemainingDays() === 0) {
+    // 残り日数が0ならもっと分かりやすく
+    if (this.getRemainingDays() === 0) {
       this.confirmButton.text = '作業は終了しました';
       this.confirmButton.alpha = 0.3;
       this.confirmButton.eventMode = 'none';
     } else {
-    this.confirmButton.visible = true;
-  }
-    
+      this.confirmButton.visible = true;
+    }
+
   }
 
   private pickWolves(animals: { name: string, canBeWolf?: boolean }[], count: number): string[] {
@@ -826,8 +827,8 @@ private updateStatusText() {
   }
 
   private updateRemainingDaysLabel() {
-    const current = (SceneManager.currentDay ?? 0) ;
-    const remain = Math.max(0, this.maxDays - current );
+    const current = (SceneManager.currentDay ?? 0);
+    const remain = Math.max(0, this.maxDays - current);
 
     if (remain > 1) {
       this.remainingDaysLabel.text = `残り日数：${remain}日`;
@@ -843,8 +844,8 @@ private updateStatusText() {
   }
 
   private getRemainingDays(): number {
-  const current = (SceneManager.currentDay ?? 0) ;
-  return Math.max(0, this.maxDays - current );
+    const current = (SceneManager.currentDay ?? 0);
+    return Math.max(0, this.maxDays - current);
   }
   override destroy(options?: PIXI.IDestroyOptions | boolean): void {
     try {

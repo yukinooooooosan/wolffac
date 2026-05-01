@@ -1,10 +1,14 @@
 import * as PIXI from 'pixi.js';
 import { SceneManager } from '../core/SceneManager';
 import type { ScenarioData } from '../core/types';
+import { StatsManager } from '../core/StatsManager';
 
 export class OpeningScene extends PIXI.Container {
   constructor(scenario: ScenarioData) {
     super();
+
+    // 統計記録: 新しいゲームを開始
+    StatsManager.incrementTotalGames();
 
     // 背景（必要であれば追加）
     this.addBackground();

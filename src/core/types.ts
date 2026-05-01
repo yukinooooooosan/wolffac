@@ -28,10 +28,10 @@ export type AnimalData = {
 };
 
 export type WolfAttackRule = {
-injuryType: "random" | "targeted" | "maleOnly";
+  injuryType: "random" | "targeted" | "maleOnly" | "self";
   maxInjuriesPerTurn: number;
-  allowWolfSelfAttack?: boolean; 
-  attackCount?: number; 
+  allowWolfSelfAttack?: boolean;
+  attackCount?: number;
 };
 
 export type ScenarioData = {

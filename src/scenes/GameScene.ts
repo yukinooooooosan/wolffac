@@ -1,16 +1,19 @@
 import * as PIXI from 'pixi.js';
 import { Assets, ColorMatrixFilter } from 'pixi.js';
 import type { ScenarioData } from '../core/types';
+import { assetUrl } from '../core/assetPath';
 import { SceneManager } from '../core/SceneManager';
 import { GlowFilter } from '@pixi/filter-glow';
 import type { AnimalData } from '../core/types';
+import { applyWorkDayLogs } from '../game/workLog';
+import { resolveWorkDay } from '../game/resolveWorkDay';
 
 import {
   ANIMAL_SIZE, ANIMAL_PADDING_X, ANIMAL_PADDING_Y, ANIMAL_OFFSET_X, ANIMAL_OFFSET_Y,
   PROGRESS_BAR_X, PROGRESS_BAR_Y, PROGRESS_BAR_WIDTH, PROGRESS_BAR_HEIGHT, PROGRESS_BAR_RADIUS,
   PROGRESS_BAR_COLOR_FROM, PROGRESS_BAR_COLOR_TO, PROGRESS_BAR_BG_COLOR,
   LEDGER_BUTTON_WIDTH, LEDGER_BUTTON_HEIGHT, LEDGER_BUTTON_X, LEDGER_BUTTON_Y,
-  LEDGER_WINDOW_X,LEDGER_WINDOW_Y,LEDGER_WINDOW_WIDTH,LEDGER_WINDOW_HEIGHT,
+  LEDGER_WINDOW_X, LEDGER_WINDOW_Y, LEDGER_WINDOW_WIDTH, LEDGER_WINDOW_HEIGHT,
   TITLE_FONT_SIZE, STATUS_FONT_SIZE, STATUS_HIGHLIGHT_COLOR, STATUS_COMPLETE_COLOR,
   LEDGER_LABEL_FONT_SIZE,
   CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, CONFIRM_BUTTON_FONT_SIZE, CONFIRM_BUTTON_COLOR,
@@ -159,7 +162,7 @@ export class GameScene extends PIXI.Container {
     this.progressLabel.y = PROGRESS_BAR_Y + PROGRESS_BAR_HEIGHT / 2;
     this.addChild(this.progressLabel);
 
-    this.ledgerButton = PIXI.Sprite.from('/assets/icons/ledgerButton.png');
+    this.ledgerButton = PIXI.Sprite.from(assetUrl('assets/icons/ledgerButton.png'));
     this.ledgerButton.width = LEDGER_BUTTON_WIDTH;
     this.ledgerButton.height = LEDGER_BUTTON_HEIGHT;
     this.ledgerButton.anchor?.set?.(0.5, 1);
@@ -194,8 +197,12 @@ export class GameScene extends PIXI.Container {
 
     // ▼ 画像をまとめて事前ロード（内部並列）
     (async () => {
-      const urls = this.scenario.availableAnimals.map(a => `/assets/animals/${a.image}`);
-      await Assets.load(urls);
+      const urls = this.scenario.availableAnimals.map(a => assetUrl(`assets/animals/${a.image}`));
+      try {
+        await Assets.load(urls);
+      } catch (err) {
+        console.warn("一部の動物アセットの読み込みに失敗しました。フォールバック表示を使用します。", err);
+      }
 
       for (let [index, animal] of this.scenario.availableAnimals.entries()) {
         const col = index % 2;
@@ -206,7 +213,7 @@ export class GameScene extends PIXI.Container {
         container.y = ANIMAL_OFFSET_Y + row * ANIMAL_PADDING_Y;
         container.hitArea = new PIXI.Rectangle(0, 0, ANIMAL_SIZE, ANIMAL_SIZE);
 
-        const imageUrl = `/assets/animals/${animal.image}`;
+        const imageUrl = assetUrl(`assets/animals/${animal.image}`);
         let sprite: PIXI.Sprite | PIXI.Graphics;
 
         try {
@@ -222,10 +229,10 @@ export class GameScene extends PIXI.Container {
           if (animalState?.to === "injured") {
             const colorFilter = new ColorMatrixFilter();
             colorFilter.matrix = [
-              1.2,  0.2, 0.1, 0, 0,
-              0.1,  0.5, 0.1, 0, 0,
-              0.1,  0.1, 0.5, 0, 0,
-              0,    0,   0,   1, 0
+              1.2, 0.2, 0.1, 0, 0,
+              0.1, 0.5, 0.1, 0, 0,
+              0.1, 0.1, 0.5, 0, 0,
+              0, 0, 0, 1, 0
             ];
             loaded.filters = [colorFilter];
           } else if (animalState?.to === "dead") {
@@ -234,7 +241,7 @@ export class GameScene extends PIXI.Container {
               0.4, 0.4, 0.4, 0, 0,
               0.4, 0.4, 0.4, 0, 0,
               0.4, 0.4, 0.4, 0, 0,
-              0,   0,   0,   1, 0
+              0, 0, 0, 1, 0
             ];
             loaded.filters = [colorFilter];
           }
@@ -373,10 +380,6 @@ export class GameScene extends PIXI.Container {
         return animal;
       });
 
-      const newAnimalStateList: AnimalState[] = [];
-
-      const hasWolf = selectedArray.some(a => this.wolves.includes(a.name));
-
       if (!SceneManager.animalStateList) {
         SceneManager.animalStateList = this.scenario.availableAnimals.map(animal => ({
           name: animal.name,
@@ -389,90 +392,38 @@ export class GameScene extends PIXI.Container {
       // ▼ 当日ログの初期化／上書き（共通）
       const dayIdx = SceneManager.currentDay ?? 0;
 
-      const initTodayLogs = () => {
-        this.scenario.availableAnimals.forEach(animal => {
-          if (!SceneManager.animalLogs[animal.name]) {
-            SceneManager.animalLogs[animal.name] = [];
-          }
-          SceneManager.animalLogs[animal.name][dayIdx] = { selected: false, injured: false };
-        });
-      };
-
       const applyTodayLogs = (stateList: AnimalState[]) => {
-        this.scenario.availableAnimals.forEach(animal => {
-          const isSelected = this.selected.has(animal.name);
-          const st = stateList.find(a => a.name === animal.name);
-          const isInjured = st?.to === "injured" || st?.to === "dead";
-          SceneManager.animalLogs[animal.name][dayIdx] = { selected: isSelected, injured: isInjured };
+        SceneManager.animalLogs = applyWorkDayLogs({
+          currentLogs: SceneManager.animalLogs,
+          animals: this.scenario.availableAnimals,
+          stateList,
+          selectedNames: [...this.selected],
+          day: dayIdx,
         });
       };
 
-      if (!hasWolf) {
-        const newStateListNoAttack = this.animalStateList.map(s => ({
-          name: s.name, from: s.to, to: s.to,
-        }));
-        SceneManager.animalStateList = newStateListNoAttack;
+      const result = resolveWorkDay({
+        allAnimals: this.scenario.availableAnimals,
+        selectedAnimals: selectedArray,
+        previousStateList: prevStateList,
+        wolfNames: this.wolves,
+        attackRule: {
+          injuryType: this.scenario.wolfAttackRule?.injuryType,
+          attackCount: this.scenario.wolfAttackRule?.attackCount,
+          allowWolfSelfAttack: this.allowSelfAttack,
+        },
+      });
 
-        initTodayLogs();
-        applyTodayLogs(newStateListNoAttack);
-
-        SceneManager.changeScene('Result', {
-          selected: selectedArray,
-          wolves: this.wolves,
-          playerLost: false,
-          scenario: this.scenario,
-          animalStateList: newStateListNoAttack,
-        });
-        return;
-      }
-
-      // 襲撃判定
-      let attackedNames: string[] = [];
-      const selectedAnimals = selectedArray;
-
-      if (this.scenario.wolfAttackRule?.injuryType === "maleOnly") {
-        const candidates = selectedAnimals.filter(a =>
-          a.role === '♂' && !this.wolves.includes(a.name)
-        );
-        if (candidates.length >= 2) {
-          attackedNames = [...candidates].sort(() => Math.random() - 0.5).slice(0, 2).map(a => a.name);
-        } else if (candidates.length === 1) {
-          attackedNames = [candidates[0].name];
-        }
-      } else {
-        const attackCount = this.scenario.wolfAttackRule?.attackCount ?? 1;
-        const candidates = this.allowSelfAttack
-          ? selectedArray
-          : selectedAnimals.filter(a => !this.wolves.includes(a.name));
-        attackedNames = [...candidates].sort(() => Math.random() - 0.5).slice(0, attackCount).map(a => a.name);
-      }
-
-      for (const animal of this.scenario.availableAnimals) {
-        const prevState = prevStateList.find(a => a.name === animal.name);
-        if (!prevState) continue;
-
-        const isAttacked = attackedNames.includes(animal.name);
-        const fromState = prevState.to;
-        let toState: StateType = fromState;
-        if (isAttacked) {
-          if (fromState === "normal") toState = "injured";
-          else if (fromState === "injured") toState = "dead";
-          else toState = "dead";
-        }
-
-        newAnimalStateList.push({ name: animal.name, from: fromState, to: toState });
-      }
-
+      const newAnimalStateList = result.animalStateList;
       SceneManager.animalStateList = newAnimalStateList;
 
-      const playerLost = newAnimalStateList.some(a => a.to === "dead");
+      const playerLost = result.playerLost;
 
       // ログ反映
-      initTodayLogs();
       applyTodayLogs(newAnimalStateList);
 
       SceneManager.changeScene('Result', {
-        selected: selectedAnimals,
+        selected: selectedArray,
         wolves: this.wolves,
         playerLost,
         scenario: this.scenario,
@@ -482,7 +433,7 @@ export class GameScene extends PIXI.Container {
 
     this.addChild(this.confirmButton);
 
-    this.accuseButton = new PIXI.Text('告発 ▶', {
+    this.accuseButton = new PIXI.Text('◀ 処分実行', {
       fill: ACCUSE_BUTTON_COLOR,
       fontSize: ACCUSE_BUTTON_FONT_SIZE,
     });
@@ -587,7 +538,7 @@ export class GameScene extends PIXI.Container {
 
     animals.forEach((animal, index) => {
       const row = Math.floor(index);
-      const icon = PIXI.Sprite.from(`/assets/animals/${animal.image}`);
+      const icon = PIXI.Sprite.from(assetUrl(`assets/animals/${animal.image}`));
       icon.width = 90; icon.height = 90;
       icon.x = 80; icon.y = LEDGER_WINDOW_Y + row * 110;
       window.addChild(icon);
@@ -610,12 +561,12 @@ export class GameScene extends PIXI.Container {
       const stateText = new PIXI.Text(`状態：${stateLabelMap[state]}`, {
         fill: stateColor, fontSize: 22, fontWeight: "bold"
       });
-      stateText.x = 180; stateText.y = LEDGER_WINDOW_Y*1.05 + row * 110;
+      stateText.x = 180; stateText.y = LEDGER_WINDOW_Y * 1.05 + row * 110;
 
       const commentText = new PIXI.Text(comment, {
         fill: 0xffffff, fontSize: 18, wordWrap: true, wordWrapWidth: 400
       });
-      commentText.x = 180; commentText.y = LEDGER_WINDOW_Y*1.2 + row * 110;
+      commentText.x = 180; commentText.y = LEDGER_WINDOW_Y * 1.2 + row * 110;
 
       window.addChild(stateText);
       window.addChild(commentText);
@@ -637,7 +588,7 @@ export class GameScene extends PIXI.Container {
   }
 
   private renderBackground() {
-    Assets.load('/assets/backgrounds/gamebg.png').then(bgTexture => {
+    Assets.load(assetUrl('assets/backgrounds/gamebg.png')).then(bgTexture => {
       const bgSprite = new PIXI.Sprite(bgTexture);
       bgSprite.width = 720;
       bgSprite.height = 1280;
@@ -691,6 +642,7 @@ export class GameScene extends PIXI.Container {
 
   private getRemainingDays(): number {
     const current = (SceneManager.currentDay ?? 0);
-    return Math.max(0, this.maxDays - current);
+    const maxDays = this.scenario.maxDays ?? 3;
+    return Math.max(0, maxDays - current);
   }
 }

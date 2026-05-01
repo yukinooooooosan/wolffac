@@ -13,9 +13,15 @@
       canvas {
         display: block;
       }
+      #root,
+      .legacy-pixi-root {
+        width: 100vw;
+        height: 100vh;
+      }
     </style>
   </head>
   <body>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

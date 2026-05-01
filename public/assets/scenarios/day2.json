@@ -1,8 +1,14 @@
 {
   "id": "day2",
   "title": "第2作業日",
-  "openingText": "第2作業日は、昨日と違う顔ぶれで静かに幕を開ける。",
+  "opening": {
+    "heading": "── 指令 ──",
+    "lines": [
+      "第2作業日は、昨日と違う顔ぶれで静かに幕を開ける。"
+    ]
+  },
   "selectCount": 4,
+  "maxDays": 3,
   "availableAnimals": [
     {
       "name": "タヌキ",

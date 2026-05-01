@@ -1,10 +1,15 @@
 import * as PIXI from 'pixi.js';
 import { Assets } from 'pixi.js';
+import { assetUrl } from '../core/assetPath';
 import { SceneManager } from '../core/SceneManager';
+import { StatsManager } from '../core/StatsManager';
 
 export class InjuryGameOverScene extends PIXI.Container {
   constructor(animalName: string) {
     super();
+
+    // 統計記録
+    StatsManager.incrementInjuryDefeats();
 
     // 背景画像の読み込み
     this.renderBackground();
@@ -50,7 +55,7 @@ export class InjuryGameOverScene extends PIXI.Container {
 
   private async renderBackground() {
     try {
-      const texture = await Assets.load('/assets/backgrounds/injurygameoverbg.png');
+      const texture = await Assets.load(assetUrl('assets/backgrounds/injurygameoverbg.png'));
       const bg = new PIXI.Sprite(texture);
       bg.width = 720;
       bg.height = 1280;
