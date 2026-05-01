@@ -41,8 +41,14 @@ export function CommandPanel({
   return (
     <section className="command-panel" aria-label="操作">
       <div className="command-panel__status">
-        <span>稼働日 {Math.min(currentDay + 1, maxDays)} / {maxDays}</span>
-        <span>残り {remaining} 匹</span>
+        <span>
+          <strong>DAY</strong>
+          {Math.min(currentDay + 1, maxDays)} / {maxDays}
+        </span>
+        <span>
+          <strong>SELECT</strong>
+          {selectedCount} / {requiredCount}
+        </span>
       </div>
       <p className={`command-panel__message ${remaining === 0 ? "is-ready" : ""}`}>
         {statusText}
@@ -55,7 +61,7 @@ export function CommandPanel({
         {dayText}
       </p>
       <div className="command-panel__actions">
-        <button className="command-panel__button" type="button" onClick={onStartWork} disabled={!canStart}>
+        <button className="command-panel__button command-panel__button--start" type="button" onClick={onStartWork} disabled={!canStart}>
           作業開始 ▶
         </button>
         <button className="command-panel__button command-panel__button--ledger" type="button" onClick={onOpenLedger}>

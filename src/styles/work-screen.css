@@ -555,10 +555,13 @@
 .result-panel,
 .log-panel {
   min-height: 150px;
-  padding: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(5, 8, 10, 0.76);
+  padding: 16px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(18, 22, 22, 0.88), rgba(0, 0, 0, 0.84)),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.12), transparent 62%);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.56), 0 10px 18px rgba(0, 0, 0, 0.34);
 }
 
 .command-panel {
@@ -570,40 +573,72 @@
 }
 
 .command-panel__status {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  color: #dfe6df;
-  font-size: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 3px 0 #000000;
+}
+
+.command-panel__status span {
+  display: grid;
+  gap: 2px;
+  min-height: 56px;
+  align-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.command-panel__status strong {
+  color: #91d7ff;
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .command-panel__message {
-  min-height: 26px;
-  margin: 14px 0 10px;
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+  margin: 12px 0 10px;
+  padding: 0 12px;
+  border: 2px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
   color: #ffffff;
-  font-size: 17px;
-  font-weight: 800;
+  background: rgba(0, 0, 0, 0.36);
+  font-size: 18px;
+  font-weight: 900;
   line-height: 1.45;
   text-align: center;
+  text-shadow: 0 2px 0 #000000;
 }
 
 .command-panel__message.is-ready {
-  color: #69e991;
+  color: #89ff9d;
+  border-color: rgba(137, 255, 157, 0.34);
 }
 
 .command-panel__progress {
   position: relative;
-  height: 24px;
-  border: 2px solid rgba(255, 255, 255, 0.78);
-  border-radius: 6px;
-  background: #444444;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 10px, transparent 10px 20px),
+    #343434;
   overflow: hidden;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.72);
 }
 
 .command-panel__progress-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: linear-gradient(90deg, #00ccff, #2288ff);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 48%),
+    linear-gradient(90deg, #00ccff, #2288ff);
   transition: width 180ms ease;
 }
 
@@ -614,7 +649,7 @@
   place-items: center;
   height: 100%;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 900;
   text-shadow: 0 2px 0 #111111;
 }
@@ -622,9 +657,10 @@
 .command-panel__days {
   margin: 9px 0 0;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   text-align: center;
+  text-shadow: 0 2px 0 #000000;
 }
 
 .command-panel__days.is-warning {
@@ -634,37 +670,67 @@
 .command-panel__actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   margin-top: 16px;
 }
 
 .command-panel__button {
-  min-height: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
+  min-height: 50px;
+  border: 0;
+  border-radius: 12px;
   color: #101410;
-  background: #d7e7c6;
-  font-weight: 800;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 45%),
+    #d7e7c6;
+  font-size: 16px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.46);
+}
+
+.command-panel__button:not(:disabled):active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.46);
+}
+
+.command-panel__button--start {
+  grid-column: 1 / -1;
+  min-height: 70px;
+  color: #111111;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 45%),
+    #66f08d;
+  font-size: 30px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .command-panel__button--danger {
   color: #ffffff;
-  background: #9b3535;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent 45%),
+    #9b3535;
+  text-shadow: 0 2px 0 #421010;
 }
 
 .command-panel__button--ledger {
   color: #101410;
-  background: #e3c96b;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 45%),
+    #e3c96b;
 }
 
 .command-panel__button--ghost {
   color: #edf2ec;
-  background: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 45%),
+    rgba(255, 255, 255, 0.08);
+  text-shadow: 0 2px 0 #000000;
 }
 
 .command-panel__button:disabled {
   cursor: default;
+  filter: grayscale(0.6);
   opacity: 0.42;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.32);
 }
 
 .result-panel__text {
@@ -684,40 +750,83 @@
 
 .log-panel__rows {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   max-height: 220px;
   overflow: auto;
 }
 
+.log-panel__head,
 .log-panel__row {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: minmax(86px, 1fr) repeat(3, 42px);
   gap: 8px;
   align-items: center;
+}
+
+.log-panel__head {
+  margin: 0 0 6px;
+  color: #91d7ff;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.log-panel__row {
+  min-height: 38px;
+  padding: 5px 6px;
+  border-radius: 10px;
   color: #dce4dc;
-  font-size: 13px;
+  background: rgba(0, 0, 0, 0.26);
+  font-size: 15px;
 }
 
 .log-panel__name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 900;
+  text-shadow: 0 2px 0 #000000;
 }
 
 .log-panel__days {
-  display: flex;
-  gap: 4px;
+  display: contents;
 }
 
+.log-panel__head span,
 .log-panel__day {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  font-size: 12px;
-  font-weight: 800;
+}
+
+.log-panel__day {
+  width: 42px;
+  height: 30px;
+  border-radius: 8px;
+  color: #111111;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+}
+
+.log-panel__day--empty {
+  color: #d8ded8;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.log-panel__day--worked {
+  background: #6bd6aa;
+}
+
+.log-panel__day--injured {
+  color: #ffffff;
+  background: #b74444;
+  text-shadow: 0 2px 0 #4b1111;
+}
+
+.log-panel__day--rested {
+  color: #d5d8d5;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .ledger-panel {
